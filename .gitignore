@@ -1,0 +1,8 @@
+.vscode
+.svn
+
+~*.xlsx
+*.*~
+
+/examples/outjson
+
