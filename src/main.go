@@ -28,6 +28,7 @@ const (
 	State_ArrEnd   = TokenState(4)
 	State_MsgBegin = TokenState(8)
 	State_MsgEnd   = TokenState(16)
+	State_SetArr   = TokenState(32)
 )
 
 type NestedFieldDesc struct {
@@ -204,6 +205,21 @@ func (t *TableData) parseRowData(rowi int) (map[string]interface{}, error) {
 				if err := setCurValue(curObj, v2.name, pv); err != nil {
 					return nil, err
 				}
+			case State_SetArr:
+				if !strings.HasPrefix(v1, "[") || !strings.HasSuffix(v1, "]") {
+					return nil, errors.New("arrValue invalid. column " + desc.FieldName + " row " + strconv.Itoa(rowi+1+len(t.header)))
+				}
+				strArr := strings.Split(v1[1:len(v1)-1], ",")
+				for _, sv := range strArr {
+					pv, err := parseFieldValue(sv, desc.ValueType)
+					if err != nil {
+						return nil, err
+					}
+					if err := setCurValue(curObj, v2.name, pv); err != nil {
+						return nil, err
+					}
+				}
+
 			case State_ArrBegin:
 				arr := []interface{}{}
 				subObj := &arr
@@ -286,6 +302,10 @@ func parseNestedFieldDesc(desc *FieldDesc) error {
 				// 以[字符结束时, 需要增加一个set
 				if start == len(desc.FieldName) {
 					desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: name, state: State_Set})
+				}
+				// 在同一行 读取arr
+				if len(desc.FieldName) > start && desc.FieldName[start] == ']' {
+					desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: name, state: State_SetArr})
 				}
 			case '{':
 				name := strings.Trim(desc.FieldName[start:cur], " 	")
