@@ -104,7 +104,7 @@ func (t *TableData) readXlsxHeader() error {
 			continue
 		}
 		fieldDesc := &FieldDesc{}
-		fieldDesc.FieldName = strings.Trim(v, " \n\t")
+		fieldDesc.FieldName = strings.TrimSpace(v)
 		arrCharCount += strings.Count(v, "[")
 		arrCharCount -= strings.Count(v, "]")
 		subMsgCharCount += strings.Count(v, "{")
@@ -139,7 +139,8 @@ func (t *TableData) readXlsxBody() error {
 		curRow := make([]string, sheet.MaxCol)
 		for coli := 0; coli < sheet.MaxCol; coli++ {
 			value := getCelValue(sheet, rowi, coli)
-			curRow[coli] = value
+			// 移除前后空白
+			curRow[coli] = strings.TrimSpace(value)
 		}
 		if strings.HasPrefix(curRow[0], "##") {
 			return errors.New("desc row " + curRow[0] + " should be the top of a sheet " + sheet.Name)
@@ -168,7 +169,6 @@ func (t *TableData) parseTableData() error {
 }
 
 func (t *TableData) parseRowData(rowi int) (map[string]interface{}, error) {
-
 	row := t.rows[rowi]
 	parsed := map[string]interface{}{}
 	objStack := []*PostSetData{}
@@ -206,11 +206,19 @@ func (t *TableData) parseRowData(rowi int) (map[string]interface{}, error) {
 					return nil, err
 				}
 			case State_SetArr:
+				// 支持空arr
+				if v1 == "" {
+					continue
+				}
 				if !strings.HasPrefix(v1, "[") || !strings.HasSuffix(v1, "]") {
 					return nil, errors.New("arrValue invalid. column " + desc.FieldName + " row " + strconv.Itoa(rowi+1+len(t.header)))
 				}
 				strArr := strings.Split(v1[1:len(v1)-1], ",")
 				for _, sv := range strArr {
+					sv = strings.TrimSpace(sv)
+					if sv == "" {
+						continue
+					}
 					pv, err := parseFieldValue(sv, desc.ValueType)
 					if err != nil {
 						return nil, err
@@ -296,7 +304,7 @@ func parseNestedFieldDesc(desc *FieldDesc) error {
 		if cur < len(desc.FieldName) {
 			switch desc.FieldName[cur] {
 			case '[':
-				name := strings.Trim(desc.FieldName[start:cur], " 	")
+				name := strings.TrimSpace(desc.FieldName[start:cur])
 				start = cur + 1
 				desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: name, state: State_ArrBegin})
 				// 以[字符结束时, 需要增加一个set
@@ -308,11 +316,11 @@ func parseNestedFieldDesc(desc *FieldDesc) error {
 					desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: name, state: State_SetArr})
 				}
 			case '{':
-				name := strings.Trim(desc.FieldName[start:cur], " 	")
+				name := strings.TrimSpace(desc.FieldName[start:cur])
 				start = cur + 1
 				desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: name, state: State_MsgBegin})
 			case ']':
-				name := strings.Trim(desc.FieldName[start:cur], " 	")
+				name := strings.TrimSpace(desc.FieldName[start:cur])
 				start = cur + 1
 				// 以]字符开头时, 需要增加一个set
 				if len(name) > 0 || start == 1 {
@@ -320,7 +328,7 @@ func parseNestedFieldDesc(desc *FieldDesc) error {
 				}
 				desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: "", state: State_ArrEnd})
 			case '}':
-				name := strings.Trim(desc.FieldName[start:cur], " 	")
+				name := strings.TrimSpace(desc.FieldName[start:cur])
 				start = cur + 1
 				desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: name, state: State_Set})
 				desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: "", state: State_MsgEnd})
@@ -328,7 +336,7 @@ func parseNestedFieldDesc(desc *FieldDesc) error {
 
 			}
 		} else {
-			name := strings.Trim(desc.FieldName[start:], " 	")
+			name := strings.TrimSpace(desc.FieldName[start:])
 			start = len(desc.FieldName)
 			desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: name, state: State_Set})
 		}
