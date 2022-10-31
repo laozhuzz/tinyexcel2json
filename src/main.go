@@ -258,13 +258,20 @@ func setCurValue(node interface{}, k string, v interface{}) error {
 }
 
 func (t *TableData) ExportJson(w io.Writer) error {
-	e := json.NewEncoder(w)
-	e.SetIndent("", "\t")
 
+	c := json.Config{
+		SortMapKeys: true,
+		//EscapeHTML:  true,
+		IndentionStep: 1,
+		//ValidateJsonRawMessage: true,
+	}
+
+	e := c.Froze().NewEncoder(w)
 	if err := e.Encode(t.parsedData); err != nil {
 		return err
 	}
 	return nil
+
 }
 
 func parseNestedFieldDesc(desc *FieldDesc) error {
