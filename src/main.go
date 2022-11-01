@@ -509,5 +509,9 @@ func main() {
 
 	if err := VALIDATOR.Validate(); err != nil {
 		panic(err)
+	} else {
+		fmt.Println("validator verify succ.")
 	}
+
+	fmt.Println("convert finish.")
 }
