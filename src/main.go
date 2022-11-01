@@ -127,6 +127,30 @@ func (t *TableData) readXlsxHeader() error {
 	if subMsgCharCount != 0 {
 		return errors.New("mismatch {}" + " in sheet " + sheet.Name)
 	}
+	validatorRow := t.header["##validator"]
+	if validatorRow != nil {
+		for i, v := range validatorRow.Fields {
+			if v == "" || strings.HasPrefix(v, "##") {
+				continue
+			}
+			fieldDesc := t.rowDesc[i]
+			src := make([]string, 0, 8)
+			src = append(src, t.sheet.Name)
+			for i := 0; i < len(fieldDesc.NestedField); i++ {
+				if fieldDesc.NestedField[i].name != "" {
+					src = append(src, fieldDesc.NestedField[i].name)
+				}
+			}
+			cmd := strings.Split(v, "=")
+			if len(cmd) != 2 {
+				return errors.New("validator format err " + fieldDesc.FieldName)
+			}
+
+			if err := VALIDATOR.AddRule(strings.Join(src, "."), cmd[0], cmd[1]); err != nil {
+				return errors.New(err.Error() + fieldDesc.FieldName)
+			}
+		}
+	}
 
 	return nil
 }
@@ -439,6 +463,7 @@ func ConvertFile(filename string, output string) error {
 		if err := tableData.ExportJson(f); err != nil {
 			panic("error:" + filename + ":" + err.Error())
 		}
+		VALIDATOR.AddTableData(sheet.Name, tableData.parsedData)
 	}
 	return nil
 }
@@ -480,5 +505,9 @@ func main() {
 		if err := ConvertFile(*flagInput, fullOutput); err != nil {
 			panic(err)
 		}
+	}
+
+	if err := VALIDATOR.Validate(); err != nil {
+		panic(err)
 	}
 }
