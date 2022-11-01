@@ -66,17 +66,17 @@ func (r *RangeRule) VerifyRule(v *Validator, rule Rule) error {
 
 func verifyValue_Range(fv interface{}, min int64, max int64) error {
 	var v int64
-	switch fv.(type) {
+	switch fv := fv.(type) {
 	case int:
-		v = int64(fv.(int))
+		v = int64(fv)
 	case int32:
-		v = int64(fv.(int32))
+		v = int64(fv)
 	case int64:
-		v = int64(fv.(int64))
+		v = int64(fv)
 	case float32:
-		v = int64(fv.(float32))
+		v = int64(fv)
 	case float64:
-		v = int64(fv.(float64))
+		v = int64(fv)
 
 	default:
 		return errors.New("range only work on signed number field")
