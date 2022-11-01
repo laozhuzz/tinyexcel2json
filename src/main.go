@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	json "github.com/json-iterator/go"
+	"github.com/laozhuzz/excel2json/validator"
 	"github.com/tealeg/xlsx/v3"
 )
 
@@ -133,9 +134,30 @@ func (t *TableData) readXlsxHeader() error {
 			if v == "" || strings.HasPrefix(v, "##") {
 				continue
 			}
-			fieldDesc := t.rowDesc[i]
+
 			src := make([]string, 0, 8)
 			src = append(src, t.sheet.Name)
+			for j := 1; j < i; j++ {
+				fieldDesc := t.rowDesc[j]
+				for k := 0; k < len(fieldDesc.NestedField); k++ {
+					nestFieldDesc := fieldDesc.NestedField[k]
+					if nestFieldDesc.name == "" {
+						continue
+					}
+
+					switch nestFieldDesc.state {
+					case State_ArrBegin:
+						fallthrough
+					case State_MsgBegin:
+						src = append(src, nestFieldDesc.name)
+					case State_ArrEnd:
+						fallthrough
+					case State_MsgEnd:
+						src = src[0 : len(src)-1]
+					}
+				}
+			}
+			fieldDesc := t.rowDesc[i]
 			for i := 0; i < len(fieldDesc.NestedField); i++ {
 				if fieldDesc.NestedField[i].name != "" {
 					src = append(src, fieldDesc.NestedField[i].name)
@@ -146,7 +168,7 @@ func (t *TableData) readXlsxHeader() error {
 				return errors.New("validator format err " + fieldDesc.FieldName)
 			}
 
-			if err := VALIDATOR.AddRule(strings.Join(src, "."), cmd[0], cmd[1]); err != nil {
+			if err := validator.VALIDATOR.AddRule(strings.Join(src, "."), cmd[0], cmd[1]); err != nil {
 				return errors.New(err.Error() + fieldDesc.FieldName)
 			}
 		}
@@ -463,7 +485,7 @@ func ConvertFile(filename string, output string) error {
 		if err := tableData.ExportJson(f); err != nil {
 			panic("error:" + filename + ":" + err.Error())
 		}
-		VALIDATOR.AddTableData(sheet.Name, tableData.parsedData)
+		validator.VALIDATOR.AddTableData(sheet.Name, tableData.parsedData)
 	}
 	return nil
 }
@@ -507,7 +529,7 @@ func main() {
 		}
 	}
 
-	if err := VALIDATOR.Validate(); err != nil {
+	if err := validator.VALIDATOR.Validate(); err != nil {
 		panic(err)
 	} else {
 		fmt.Println("validator verify succ.")

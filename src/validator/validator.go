@@ -1,4 +1,4 @@
-package main
+package validator
 
 import (
 	"errors"
@@ -11,6 +11,11 @@ var (
 	VALIDATOR *Validator
 )
 
+type IRuleHandler interface {
+	CheckRuleFormat(src, cmd, dest string) error
+	VerifyRule(v *Validator, rule Rule) error
+}
+
 type Rule struct {
 	cmd string
 	src string
@@ -18,17 +23,28 @@ type Rule struct {
 }
 
 type Validator struct {
-	rules  []Rule
-	tables map[string]map[interface{}]map[string]interface{}
+	rules       []Rule
+	ruleHandler map[string]IRuleHandler
+	tables      map[string]map[interface{}]map[string]interface{}
 }
 
 func init() {
-	VALIDATOR = &Validator{}
+	VALIDATOR = &Validator{
+		rules:       []Rule{},
+		ruleHandler: map[string]IRuleHandler{},
+		tables:      map[string]map[interface{}]map[string]interface{}{},
+	}
+	VALIDATOR.ruleHandler["ref"] = &RefRule{}
+	VALIDATOR.ruleHandler["range"] = &RangeRule{}
 }
 
 func (v *Validator) AddRule(src, cmd, dest string) error {
-	if !isValidCmd(cmd) {
+	h := v.ruleHandler[cmd]
+	if h == nil {
 		return errors.New(cmd + " cmd not supported.")
+	}
+	if err := h.CheckRuleFormat(src, cmd, dest); err != nil {
+		return err
 	}
 	v.rules = append(v.rules, Rule{
 		cmd: cmd,
@@ -57,12 +73,11 @@ func (v *Validator) Validate() error {
 }
 func (v *Validator) verifyRule(rule Rule) error {
 	fmt.Println("verify rule: " + rule.src + " " + rule.cmd + " " + rule.dst)
-	switch rule.cmd {
-	case "ref":
-		return v.verifyRule_Ref(rule)
-	default:
+	h := v.ruleHandler[rule.cmd]
+	if h == nil {
 		return errors.New("unimplement cmd " + rule.cmd)
 	}
+	return h.VerifyRule(v, rule)
 }
 
 func (v *Validator) verifyRule_Ref(rule Rule) error {
@@ -158,15 +173,4 @@ func getSubFieldValue(fields []string, fv reflect.Value) (interface{}, error) {
 	default:
 	}
 	return nil, nil
-}
-
-func isValidCmd(cmd string) bool {
-	switch cmd {
-	case "ref":
-		return true
-	case "range":
-		return true
-	default:
-		return false
-	}
 }
