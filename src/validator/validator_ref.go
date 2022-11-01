@@ -9,8 +9,11 @@ import (
 type RefRule struct {
 }
 
-func (r *RefRule) CheckRuleFormat(src, cmd, dest string) error {
+func init() {
+	Instance().RegisterHandler("ref", &RefRule{})
+}
 
+func (r *RefRule) CheckRuleFormat(src, cmd, dest string) error {
 	return nil
 }
 
@@ -30,12 +33,12 @@ func (r *RefRule) VerifyRule(v *Validator, rule Rule) error {
 			} else {
 				if arr, ok := fv.([]interface{}); ok {
 					for _, sfv := range arr {
-						if !v.keyExists(dstTable, dstFields[1:], sfv) {
+						if !keyExists(dstTable, dstFields[1:], sfv) {
 							return fmt.Errorf("table:%v id:%v ref fail. %v %v", fields[0], row["Id"], rule.src, sfv)
 						}
 					}
 				} else {
-					if !v.keyExists(dstTable, dstFields[1:], fv) {
+					if !keyExists(dstTable, dstFields[1:], fv) {
 						return fmt.Errorf("table:%v id:%v ref fail. %v %v", fields[0], row["Id"], rule.src, fv)
 					}
 				}
@@ -43,4 +46,13 @@ func (r *RefRule) VerifyRule(v *Validator, rule Rule) error {
 		}
 	}
 	return nil
+}
+
+func keyExists(table map[interface{}]map[string]interface{}, fields []string, key interface{}) bool {
+	// TODO: 暂时只支持 id 外键
+	if _, ok := table[key]; ok {
+		return true
+	} else {
+		return false
+	}
 }

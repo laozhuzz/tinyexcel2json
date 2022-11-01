@@ -4,11 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
+	"sync"
 )
 
 var (
-	VALIDATOR *Validator
+	once     sync.Once
+	instance *Validator
 )
 
 type IRuleHandler interface {
@@ -28,14 +29,19 @@ type Validator struct {
 	tables      map[string]map[interface{}]map[string]interface{}
 }
 
-func init() {
-	VALIDATOR = &Validator{
-		rules:       []Rule{},
-		ruleHandler: map[string]IRuleHandler{},
-		tables:      map[string]map[interface{}]map[string]interface{}{},
-	}
-	VALIDATOR.ruleHandler["ref"] = &RefRule{}
-	VALIDATOR.ruleHandler["range"] = &RangeRule{}
+func Instance() *Validator {
+	once.Do(func() {
+		instance = &Validator{
+			rules:       []Rule{},
+			ruleHandler: map[string]IRuleHandler{},
+			tables:      map[string]map[interface{}]map[string]interface{}{},
+		}
+
+	})
+	return instance
+}
+func (v *Validator) RegisterHandler(cmd string, h IRuleHandler) {
+	v.ruleHandler[cmd] = h
 }
 
 func (v *Validator) AddRule(src, cmd, dest string) error {
@@ -71,6 +77,7 @@ func (v *Validator) Validate() error {
 	}
 	return nil
 }
+
 func (v *Validator) verifyRule(rule Rule) error {
 	fmt.Println("verify rule: " + rule.src + " " + rule.cmd + " " + rule.dst)
 	h := v.ruleHandler[rule.cmd]
@@ -78,38 +85,6 @@ func (v *Validator) verifyRule(rule Rule) error {
 		return errors.New("unimplement cmd " + rule.cmd)
 	}
 	return h.VerifyRule(v, rule)
-}
-
-func (v *Validator) verifyRule_Ref(rule Rule) error {
-	fields := strings.Split(rule.src, ".")
-	table := v.tables[fields[0]]
-	if table == nil {
-		return errors.New("not found table data " + fields[0])
-	}
-	for _, row := range table {
-		if fv, err := v.getFieldValue(fields[1:], row); err != nil {
-			return err
-		} else {
-			dstFields := strings.Split(rule.dst, ".")
-			if dstTable, ok := v.tables[dstFields[0]]; !ok {
-				return errors.New("dst table not exist " + rule.dst)
-			} else {
-				if arr, ok := fv.([]interface{}); ok {
-					for _, sfv := range arr {
-						if !v.keyExists(dstTable, dstFields[1:], sfv) {
-							return fmt.Errorf("table:%v id:%v ref fail. %v %v", fields[0], row["Id"], rule.src, sfv)
-						}
-					}
-				} else {
-					if !v.keyExists(dstTable, dstFields[1:], fv) {
-						return fmt.Errorf("table:%v id:%v ref fail. %v %v", fields[0], row["Id"], rule.src, fv)
-					}
-				}
-			}
-		}
-	}
-
-	return nil
 }
 
 func (v *Validator) getFieldValue(fields []string, row map[string]interface{}) (interface{}, error) {
@@ -122,15 +97,6 @@ func (v *Validator) getFieldValue(fields []string, row map[string]interface{}) (
 		} else {
 			return fv, nil
 		}
-	}
-}
-
-func (v *Validator) keyExists(table map[interface{}]map[string]interface{}, fields []string, key interface{}) bool {
-	// TODO: 暂时只支持 id 外键
-	if _, ok := table[key]; ok {
-		return true
-	} else {
-		return false
 	}
 }
 

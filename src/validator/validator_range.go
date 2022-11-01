@@ -10,6 +10,10 @@ import (
 type RangeRule struct {
 }
 
+func init() {
+	Instance().RegisterHandler("range", &RangeRule{})
+}
+
 func (r *RangeRule) CheckRuleFormat(src, cmd, dest string) error {
 	if dest[0] != '[' || dest[len(dest)-1] != ']' {
 		return fmt.Errorf("range format error. example: [1,100] means range 1-100")

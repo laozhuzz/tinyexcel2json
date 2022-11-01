@@ -168,7 +168,7 @@ func (t *TableData) readXlsxHeader() error {
 				return errors.New("validator format err " + fieldDesc.FieldName)
 			}
 
-			if err := validator.VALIDATOR.AddRule(strings.Join(src, "."), cmd[0], cmd[1]); err != nil {
+			if err := validator.Instance().AddRule(strings.Join(src, "."), cmd[0], cmd[1]); err != nil {
 				return errors.New(err.Error() + fieldDesc.FieldName)
 			}
 		}
@@ -485,7 +485,7 @@ func ConvertFile(filename string, output string) error {
 		if err := tableData.ExportJson(f); err != nil {
 			panic("error:" + filename + ":" + err.Error())
 		}
-		validator.VALIDATOR.AddTableData(sheet.Name, tableData.parsedData)
+		validator.Instance().AddTableData(sheet.Name, tableData.parsedData)
 	}
 	return nil
 }
@@ -529,7 +529,7 @@ func main() {
 		}
 	}
 
-	if err := validator.VALIDATOR.Validate(); err != nil {
+	if err := validator.Instance().Validate(); err != nil {
 		panic(err)
 	} else {
 		fmt.Println("validator verify succ.")
