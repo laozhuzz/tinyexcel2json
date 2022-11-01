@@ -87,7 +87,7 @@ func (v *Validator) verifyRule(rule Rule) error {
 	return h.VerifyRule(v, rule)
 }
 
-func (v *Validator) getFieldValue(fields []string, row map[string]interface{}) (interface{}, error) {
+func (v *Validator) GetFieldValue(fields []string, row map[string]interface{}) (interface{}, error) {
 	if fv, ok := row[fields[0]]; !ok {
 		return nil, errors.New("field " + fields[0] + " not exist")
 	} else {

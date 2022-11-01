@@ -44,7 +44,7 @@ func (r *RangeRule) VerifyRule(v *Validator, rule Rule) error {
 	min, _ := strconv.ParseInt(dst[0], 10, 64)
 	max, _ := strconv.ParseInt(dst[1], 10, 64)
 	for _, row := range table {
-		fv, err := v.getFieldValue(fields[1:], row)
+		fv, err := v.GetFieldValue(fields[1:], row)
 		if err != nil {
 			return err
 		}
