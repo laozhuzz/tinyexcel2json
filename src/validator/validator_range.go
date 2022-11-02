@@ -82,7 +82,7 @@ func verifyValue_Range(fv interface{}, min int64, max int64) error {
 		return errors.New("range only work on signed number field")
 
 	}
-	if v >= min && v < max {
+	if v >= min && v <= max {
 		return nil
 	} else {
 		return fmt.Errorf("value %v out of range [%v,%v]", fv, min, max)
