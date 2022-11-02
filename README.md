@@ -24,10 +24,10 @@
 
 ## 举例说明
 例子:奖励配置表
-![奖励配置表](./docs/image/sheet_reward.png)
+![奖励配置表](./docs/image/sheet_reward.png)  
 图中reward是奖励配置, 可以配置多个物品, 每个物品有一个ItemId和一个Num
 表中配置了两个物品, 如果需要改成三个, 改成下图
-![奖励配置表](./docs/image/reward3item.png)
+![奖励配置表](./docs/image/reward3item.png)  
 这一步完全由策划控制, 完全不需要程序介入.
 
 #### 列头
