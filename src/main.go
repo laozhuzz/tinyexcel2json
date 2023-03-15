@@ -231,8 +231,9 @@ func (t *TableData) parseRowData(rowi int) (map[string]interface{}, error) {
 		for _, v2 := range desc.NestedField {
 			switch v2.state {
 			case State_Set:
-				// 支持空值, 限制只能是array中消息为空, 或者array字段为空; 比如奖励多个物品, 有的奖励5个, 有个4个, 这个时候就有一个为空
+				// 支持空值,
 				if v1 == "" {
+					// 限制只能是array中消息为空, 或者array字段为空; 比如奖励多个物品, 有的奖励5个, 有个4个, 这个时候就有一个为空
 					if len(objStack) > 0 {
 						pdata := objStack[len(objStack)-1]
 						if _, ok := pdata.node.(*[]interface{}); ok {
@@ -241,6 +242,10 @@ func (t *TableData) parseRowData(rowi int) (map[string]interface{}, error) {
 						if _, ok := pdata.subNode.(*[]interface{}); ok {
 							continue
 						}
+					}
+					// 字符串支持空值
+					if desc.ValueType == "string" {
+						continue
 					}
 					return nil, errors.New("value not set. column " + desc.FieldName + " row " + strconv.Itoa(rowi+1+len(t.header)))
 				}
