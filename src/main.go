@@ -381,7 +381,9 @@ func parseNestedFieldDesc(desc *FieldDesc) error {
 			case '}':
 				name := strings.TrimSpace(desc.FieldName[start:cur])
 				start = cur + 1
-				desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: name, state: State_Set})
+				if len(name) > 0 {
+					desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: name, state: State_Set})
+				}
 				desc.NestedField = append(desc.NestedField, NestedFieldDesc{name: "", state: State_MsgEnd})
 			default:
 
