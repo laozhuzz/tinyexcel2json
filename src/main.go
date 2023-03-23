@@ -51,6 +51,8 @@ type TableData struct {
 	rows       []*RowData
 	rowDesc    []*FieldDesc
 	parsedData map[interface{}]map[string]interface{}
+	curRow     int
+	curColumn  int
 }
 type PostSetData struct {
 	node    interface{}
@@ -72,7 +74,7 @@ func (t *TableData) ReadXlsxSheet() error {
 func (t *TableData) readXlsxHeader() error {
 	sheet := t.sheet
 	if sheet.MaxCol <= 1 {
-		return errors.New("empty column by" + sheet.Name)
+		return t.Error("empty column by" + sheet.Name)
 	}
 	for rowi := 0; rowi < sheet.MaxRow; rowi++ {
 		curRow := make([]string, sheet.MaxCol)
@@ -90,11 +92,11 @@ func (t *TableData) readXlsxHeader() error {
 	}
 	nameRow := t.header["##name"]
 	if nameRow == nil {
-		return errors.New("missed ##name row " + sheet.Name)
+		return t.Error("missed ##name row " + sheet.Name)
 	}
 	typeRow := t.header["##type"]
 	if typeRow == nil {
-		return errors.New("missed ##type row " + sheet.Name)
+		return t.Error("missed ##type row " + sheet.Name)
 	}
 	arrCharCount := 0
 	subMsgCharCount := 0
@@ -113,7 +115,7 @@ func (t *TableData) readXlsxHeader() error {
 
 		valueType := typeRow.Fields[i]
 		if !isValueTypeValid(valueType) {
-			return errors.New("invalid valueType " + valueType + " in sheet " + sheet.Name)
+			return t.Error("invalid valueType " + valueType + " in sheet " + sheet.Name)
 		}
 		fieldDesc.ValueType = valueType
 
@@ -123,10 +125,10 @@ func (t *TableData) readXlsxHeader() error {
 		t.rowDesc = append(t.rowDesc, fieldDesc)
 	}
 	if arrCharCount != 0 {
-		return errors.New("mismatch []" + " in sheet " + sheet.Name)
+		return t.Error("mismatch []" + " in sheet " + sheet.Name)
 	}
 	if subMsgCharCount != 0 {
-		return errors.New("mismatch {}" + " in sheet " + sheet.Name)
+		return t.Error("mismatch {}" + " in sheet " + sheet.Name)
 	}
 	validatorRow := t.header["##validator"]
 	if validatorRow != nil {
@@ -165,11 +167,11 @@ func (t *TableData) readXlsxHeader() error {
 			}
 			cmd := strings.Split(v, "=")
 			if len(cmd) != 2 {
-				return errors.New("validator format err " + fieldDesc.FieldName)
+				return t.Error("validator format err " + fieldDesc.FieldName)
 			}
 
 			if err := validator.Instance().AddRule(strings.Join(src, "."), cmd[0], cmd[1]); err != nil {
-				return errors.New(err.Error() + fieldDesc.FieldName)
+				return t.Error(err.Error() + fieldDesc.FieldName)
 			}
 		}
 	}
@@ -189,7 +191,7 @@ func (t *TableData) readXlsxBody() error {
 			curRow[coli] = strings.TrimSpace(value)
 		}
 		if strings.HasPrefix(curRow[0], "##") {
-			return errors.New("desc row " + curRow[0] + " should be the top of a sheet " + sheet.Name)
+			return t.Error("desc row " + curRow[0] + " should be the top of a sheet " + sheet.Name)
 		}
 		t.rows = append(t.rows, &RowData{Fields: curRow})
 	}
@@ -220,12 +222,14 @@ func (t *TableData) parseRowData(rowi int) (map[string]interface{}, error) {
 	objStack := []*PostSetData{}
 	var curObj interface{}
 
+	t.curRow = rowi + 1 + len(t.header)
 	curObj = parsed
 	for k1, v1 := range row.Fields {
 		// 忽略第一列 ##name
 		if k1 == 0 {
 			continue
 		}
+		t.curColumn = k1
 		desc := t.rowDesc[k1]
 
 		for _, v2 := range desc.NestedField {
@@ -247,7 +251,7 @@ func (t *TableData) parseRowData(rowi int) (map[string]interface{}, error) {
 					if desc.ValueType == "string" {
 						continue
 					}
-					return nil, errors.New("value not set. column " + desc.FieldName + " row " + strconv.Itoa(rowi+1+len(t.header)))
+					return nil, t.Error("value not set. column " + desc.FieldName + " row " + strconv.Itoa(rowi+1+len(t.header)))
 				}
 				pv, err := parseFieldValue(v1, desc.ValueType)
 				if err != nil {
@@ -262,7 +266,7 @@ func (t *TableData) parseRowData(rowi int) (map[string]interface{}, error) {
 					continue
 				}
 				if !strings.HasPrefix(v1, "[") || !strings.HasSuffix(v1, "]") {
-					return nil, errors.New("arrValue invalid. column " + desc.FieldName + " row " + strconv.Itoa(rowi+1+len(t.header)))
+					return nil, t.Error("arrValue invalid. column " + desc.FieldName + " row " + strconv.Itoa(rowi+1+len(t.header)))
 				}
 				strArr := strings.Split(v1[1:len(v1)-1], ",")
 				for _, sv := range strArr {
@@ -301,10 +305,20 @@ func (t *TableData) parseRowData(rowi int) (map[string]interface{}, error) {
 	}
 	// need Id column
 	if _, ok := parsed["Id"]; !ok {
-		return nil, errors.New("missed Id column")
+		return nil, t.Error("missed Id column")
 	}
 
 	return parsed, nil
+}
+
+func (t *TableData) Error(format string, a ...interface{}) error {
+	fieldName := ""
+	if t.curColumn < len(t.rowDesc) {
+		fieldName = t.rowDesc[t.curColumn].FieldName
+	}
+	prefix := fmt.Sprintf("data row %v column %v %v:", t.curRow, t.curColumn, fieldName)
+	errstr := fmt.Sprintf(format, a...)
+	return errors.New(prefix + errstr)
 }
 
 func setCurValue(node interface{}, k string, v interface{}) error {
