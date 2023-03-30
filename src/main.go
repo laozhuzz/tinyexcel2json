@@ -141,21 +141,31 @@ func (t *TableData) readXlsxHeader() error {
 			src = append(src, t.sheet.Name)
 			for j := 1; j < i; j++ {
 				fieldDesc := t.rowDesc[j]
+				emptyName := 0
 				for k := 0; k < len(fieldDesc.NestedField); k++ {
 					nestFieldDesc := fieldDesc.NestedField[k]
-					if nestFieldDesc.name == "" {
-						continue
-					}
 
 					switch nestFieldDesc.state {
 					case State_ArrBegin:
 						fallthrough
 					case State_MsgBegin:
-						src = append(src, nestFieldDesc.name)
+						if nestFieldDesc.name != "" {
+							src = append(src, nestFieldDesc.name)
+						} else {
+							emptyName++
+						}
 					case State_ArrEnd:
 						fallthrough
 					case State_MsgEnd:
-						src = src[0 : len(src)-1]
+						if nestFieldDesc.name != "" {
+							src = src[0 : len(src)-1]
+						} else {
+							if emptyName > 0 {
+								emptyName--
+							} else {
+								src = src[0 : len(src)-1]
+							}
+						}
 					}
 				}
 			}

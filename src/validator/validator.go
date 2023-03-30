@@ -116,7 +116,8 @@ func getSubFieldValue(fields []string, fv reflect.Value) (interface{}, error) {
 	case reflect.Array:
 		res := make([]interface{}, 0, cur.Len())
 		for i := 0; i < cur.Len(); i++ {
-			v, err := getSubFieldValue(fields[0:], cur.Index(i))
+			subField := fields
+			v, err := getSubFieldValue(subField, cur.Index(i))
 			if err != nil {
 				return nil, err
 			}
