@@ -92,6 +92,10 @@ func verifyField(v *Validator, refFields []string, fields []string, fv interface
 	case reflect.Int32:
 		fallthrough
 	case reflect.Int64:
+		// 0 不做关联
+		if rf.Int() == 0 {
+			return nil
+		}
 		refTable, ok := v.tables[refFields[0]]
 		if !ok {
 			return errors.New("ref table not exist " + refFields[0])
