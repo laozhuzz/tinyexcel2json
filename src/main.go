@@ -171,6 +171,12 @@ func (t *TableData) readXlsxHeader() error {
 			}
 			fieldDesc := t.rowDesc[i]
 			for i := 0; i < len(fieldDesc.NestedField); i++ {
+				/*
+					if i > 0 && fieldDesc.NestedField[i].name == fieldDesc.NestedField[i-1].name &&
+						fieldDesc.NestedField[i-1].state == State_ArrBegin {
+						continue
+					}
+				*/
 				if fieldDesc.NestedField[i].name != "" {
 					src = append(src, fieldDesc.NestedField[i].name)
 				}

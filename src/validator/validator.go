@@ -136,8 +136,13 @@ func getSubFieldValue(fields []string, fv reflect.Value) (interface{}, error) {
 			return nil, fmt.Errorf("field %v not found", fields[0])
 		}
 		return sfv.Interface(), nil
-
+	case reflect.Int32:
+		fallthrough
+	case reflect.Int64:
+		fallthrough
+	case reflect.String:
+		return cur.Interface(), nil
 	default:
+		return nil, fmt.Errorf("unhandle reflect type %v", cur.Kind())
 	}
-	return nil, nil
 }
