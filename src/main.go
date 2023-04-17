@@ -363,28 +363,28 @@ func setCurValue(node interface{}, k string, v interface{}) error {
 }
 
 func (t *TableData) ExportJson(w io.Writer) error {
-        data, err := json.MarshalIndent(t.parsedData, "", " ")
+	data, err := json.MarshalIndent(t.parsedData, "", " ")
 	if err != nil {
 		return err
 	}
 	if _, err := w.Write(data); err != nil {
-		return nil
-	}
-	return nil
-	/*
-	c := json.Config{
-		SortMapKeys: true,
-		//EscapeHTML:  true,
-		IndentionStep: 1,
-		//ValidateJsonRawMessage: true,
-	}
-
-	e := c.Froze().NewEncoder(w)
-	if err := e.Encode(t.parsedData); err != nil {
 		return err
 	}
 	return nil
-*/
+	/*
+		c := json.Config{
+			SortMapKeys: true,
+			//EscapeHTML:  true,
+			IndentionStep: 1,
+			//ValidateJsonRawMessage: true,
+		}
+
+		e := c.Froze().NewEncoder(w)
+		if err := e.Encode(t.parsedData); err != nil {
+			return err
+		}
+		return nil
+	*/
 }
 
 func parseNestedFieldDesc(desc *FieldDesc) error {
@@ -523,7 +523,7 @@ func ConvertFile(filename string, output string) error {
 		}
 		// set output
 		outputfile := filepath.Join(output, sheet.Name+".json")
-		f, err := os.OpenFile(outputfile, os.O_CREATE|os.O_TRUNC, fs.ModePerm)
+		f, err := os.OpenFile(outputfile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, fs.ModePerm)
 		if err != nil {
 			panic(err)
 		}
