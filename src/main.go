@@ -363,7 +363,15 @@ func setCurValue(node interface{}, k string, v interface{}) error {
 }
 
 func (t *TableData) ExportJson(w io.Writer) error {
-
+        data, err := json.MarshalIndent(t.parsedData, "", " ")
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(data); err != nil {
+		return nil
+	}
+	return nil
+	/*
 	c := json.Config{
 		SortMapKeys: true,
 		//EscapeHTML:  true,
@@ -376,7 +384,7 @@ func (t *TableData) ExportJson(w io.Writer) error {
 		return err
 	}
 	return nil
-
+*/
 }
 
 func parseNestedFieldDesc(desc *FieldDesc) error {
