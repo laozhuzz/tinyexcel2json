@@ -371,6 +371,19 @@ func (t *TableData) ExportJson(w io.Writer) error {
 	}
 
 	e := c.Froze().NewEncoder(w)
+	// 单行配置
+	if len(t.parsedData) == 1 {
+		for k, v := range t.parsedData {
+			if k.(int32) == 0 {
+				if err := e.Encode(v); err != nil {
+					return err
+				}
+				return nil
+			}
+			break
+		}
+	}
+
 	if err := e.Encode(t.parsedData); err != nil {
 		return err
 	}
